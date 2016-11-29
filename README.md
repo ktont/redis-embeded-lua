@@ -1,6 +1,5 @@
 node-redis-embeded-lua
 ==================
-## Hello World
 
 ~~~js
     var redis = require("redis"),
@@ -27,6 +26,9 @@ node-redis-embeded-lua
     .then(console.log)
     .catch(console.error);
 ~~~
+
+## Installation
+`npm install cheerio`
 
 ## Embeded Lua Script Into NodeJS
 
