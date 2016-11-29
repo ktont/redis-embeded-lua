@@ -30,7 +30,7 @@ node-redis-embeded-lua
 ## Installation
 `npm install redis-embeded-lua`
 
-## Embeded Lua Script Into NodeJS
+## Embeded Lua Script In NodeJS
 
 * I want to write Lua Script in my code directly, but not in another lua file
 * Just like embeded SQL in C language
