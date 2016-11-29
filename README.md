@@ -28,7 +28,7 @@ node-redis-embeded-lua
 ~~~
 
 ## Installation
-`npm install cheerio`
+`npm install redis-embeded-lua`
 
 ## Embeded Lua Script Into NodeJS
 
