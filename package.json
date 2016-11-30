@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/ktont/node-redis-embeded-lua.git"
+    "url": "git://github.com/ktont/redis-embeded-lua.git"
   },
   "keywords": [
     "redis",
@@ -25,7 +25,7 @@
   "author": "ktont",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ktont/node-redis-embeded-lua/issues"
+    "url": "https://github.com/ktont/redis-embeded-lua/issues"
   },
-  "homepage": "https://github.com/ktont/node-redis-embeded-lua#readme"
+  "homepage": "https://github.com/ktont/redis-embeded-lua#readme"
 }
