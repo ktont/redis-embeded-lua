@@ -63,7 +63,7 @@ function evalScript() {
 }
 
 function injectFunction(redisClient) {
-    redisClient.evalScript = evalScript.bind(redisClient);
+    redisClient.evalScript = evalScript.inject(redisClient);
     redisClient.sha1sum = sha1sum;
 }
 

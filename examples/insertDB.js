@@ -2,7 +2,7 @@ var redis = require("redis"),
     redisClient = redis.createClient();
 var redisEmbededLua = require('redis-embeded-lua');
 
-redisEmbededLua.bind(redisClient);
+redisEmbededLua.inject(redisClient);
 
 var yourBussinessInsertData = (function () {
     var script = [

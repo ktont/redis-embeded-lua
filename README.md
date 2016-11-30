@@ -6,7 +6,7 @@ node-redis-embeded-lua
         redisClient = redis.createClient();
     var redisEmbededLua = require('redis-embeded-lua');
 
-    redisEmbededLua.bind(redisClient);
+    redisEmbededLua.inject(redisClient);
 
     var yourBussinessDBCount = (function() {
         var script = [
@@ -49,7 +49,7 @@ node-redis-embeded-lua
         redisclient = redis.createClient();
     var redisEmbededLua = require('redis-embeded-lua');
 
-    redisEmbededLua.bind(redisclient);
+    redisEmbededLua.inject(redisclient);
 
     var script = 'return {KEYS[1], ARGV[1], ARGV[2]}';
     var sha1 = redisclient.sha1sum(script);
@@ -107,7 +107,7 @@ example 1
         redisClient = redis.createClient();
     var redisEmbededLua = require('redis-embeded-lua');
 
-    redisEmbededLua.bind(redisClient);
+    redisEmbededLua.inject(redisClient);
 
     var yourBussinessDBAudit = (function() {
         var script = [
@@ -159,7 +159,7 @@ example 2
         redisClient = redis.createClient();
     var redisEmbededLua = require('redis-embeded-lua');
 
-    redisEmbededLua.bind(redisClient);
+    redisEmbededLua.inject(redisClient);
 
     var yourBussinessInsertData = (function () {
         var script = [
