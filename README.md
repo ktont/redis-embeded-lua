@@ -65,9 +65,9 @@ node-redis-embeded-lua
 * You can use redisClient and redisEmbededLua together(not recommend)
 
 ~~~js
-    var redisEmbededLua = require('redis-embeded-lua');
     var redis = require("redis"),
         redisclient = redis.createClient();
+    var redisEmbededLua = require('redis-embeded-lua');
 
     redisEmbededLua.evalScript(redisclient, "return 'Hello world.'").then(console.log);
 ~~~
