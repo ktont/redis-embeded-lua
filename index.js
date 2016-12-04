@@ -35,7 +35,7 @@ function evalScript() {
         args.length == 1 && args.push(0);
     } else if(typeof(args[2]) == 'number' || args.length == 2) {
         script = args.shift();
-        args.length == 2 && args.push(0);
+        args.length == 1 && args.push(0);
     } else {
         return Promise.reject(new Error('parameter invalid.'));
     }

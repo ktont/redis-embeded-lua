@@ -9,18 +9,19 @@ node-redis-embeded-lua
     redisEmbededLua.inject(redisClient);
 
     var yourBussinessDBCount = (function() {
-        var script = [
-            "local r = redis.call('keys', '*')",
-            "local count = 0",
-            "for k,v in ipairs(r) do",
-                "count = count + 1",
-            "end",
-            "return count"
-        ].join('\n');
-        return function () {
-            return redisClient.evalScript(script);
-        };
-    })();
+        var script = `
+            local r = redis.call('keys', '*')
+            local count = 0
+            for k,v in ipairs(r) do
+                count = count + 1
+            end
+            return count
+        `;
+        var sha1 = redisClient.sha1sum(script);
+        return function() {
+            return redisClient.evalScript(script, sha1);
+        }
+    })()
 
     yourBussinessDBCount()
     .then(console.log)
@@ -109,34 +110,31 @@ example 1
 
     redisEmbededLua.inject(redisClient);
 
+    var maxDBConf = 16;
     var yourBussinessDBAudit = (function() {
-        var script = [
-            "local result = {}",
-            "for i = 0, 16 do",
-                /*
-                 * pcall, return [Error: ERR invalid DB index], if
-                 * the db not exists.
-                 */
-                "local r = redis.pcall('select', i)",
-                "if r.err then",
-                    "return result",
-                "end",
-                "local r = redis.call('keys', '*')",
-                "local tmp = {}",
-                "for k,v in ipairs(r) do",
-                    "local ty = redis.call('type', v)['ok']", 
-                    "if not tmp[ty] then tmp[ty] = 0; end",
-                    "tmp[ty] = tmp[ty] + 1",
-                "end",
-                "local lst = {}",
-                "for k,v in pairs(tmp) do",
-                    "table.insert(lst, k)",
-                    "table.insert(lst, v)",
-                "end",
-                "table.insert(result, lst)",
-            "end",
-            "return result"
-        ].join('\n');
+        var script = `
+            local result = {}
+            for i = 0, ${maxDBConf} do
+                local r = redis.pcall('select', i)
+                if r.err then
+                    return result
+                end
+                local r = redis.call('keys', '*')
+                local tmp = {}
+                for k,v in ipairs(r) do
+                    local ty = redis.call('type', v)['ok']
+                    if not tmp[ty] then tmp[ty] = 0; end
+                    tmp[ty] = tmp[ty] + 1
+                end
+                local lst = {}
+                for k,v in pairs(tmp) do
+                    table.insert(lst, k)
+                    table.insert(lst, v)
+                end
+                table.insert(result, lst)
+            end
+            return result
+        `
         return function () {
             return redisClient.evalScript(script);
         };
@@ -162,18 +160,18 @@ example 2
     redisEmbededLua.inject(redisClient);
 
     var yourBussinessInsertData = (function () {
-        var script = [
-            "local userinfo = cjson.decode(ARGV[1])",
-            "local keyExistsFlag = redis.call('exists', KEYS[1])",
-            "for k,v in pairs(userinfo) do",
-                "redis.call('hset', KEYS[1], k, v)",
-            "end",
-            "redis.call('hset', KEYS[1], 'updateTime', ARGV[2])",
-            "if keyExistsFlag == 0 then",
-                "redis.call('hset', KEYS[1], 'createTime', ARGV[2])",
-            "end",
-            "return {'ok', keyExistsFlag == 0 and 'insert '..KEYS[1] or 'update '..KEYS[1]}"
-        ].join('\n');
+        var script = `
+            local userinfo = cjson.decode(ARGV[1])
+            local keyExistsFlag = redis.call('exists', KEYS[1])
+            for k,v in pairs(userinfo) do
+                redis.call('hset', KEYS[1], k, v)
+            end
+            redis.call('hset', KEYS[1], 'updateTime', ARGV[2])
+            if keyExistsFlag == 0 then
+                redis.call('hset', KEYS[1], 'createTime', ARGV[2])
+            end
+            return {'ok', keyExistsFlag == 0 and 'insert '..KEYS[1] or 'update '..KEYS[1]}
+        `;
         var sha1 = redisClient.sha1sum(script);
 
         return function(key, json) {
