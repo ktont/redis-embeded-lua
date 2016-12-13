@@ -17,9 +17,8 @@ node-redis-embeded-lua
             end
             return count
         `;
-        var sha1 = redisClient.sha1sum(script);
         return function() {
-            return redisClient.evalScript(script, sha1);
+            return redisClient.evalScript(script);
         }
     })()
 
@@ -40,37 +39,39 @@ node-redis-embeded-lua
 
 ## Usage
 
-* You can inject method in node-redis's instance (recommend)
-* Then you can use redisClient.evalScript and redisClient.sha1sum method
-* redisClient.evalScript method just like redisClient.eval but performance is promoted
-* redisClient.sha1sum is a utils, compute a string's sha1 value
-
 ~~~js
-    var redis = require("redis"),
-        redisclient = redis.createClient();
-    var redisEmbededLua = require('redis-embeded-lua');
+    function YourBussiness() {
+    }
 
-    redisEmbededLua.inject(redisclient);
+    YourBussiness.prototype.insert = (function() {
+        var script = `
+            redis.pcall('select', 1);
+            local r = redis.call('set', 'blaba');
+            redis.pcall('select', 2);
+            .......
+        `;
+        var sha1 = redisClient.sha1sum(script);
+        return function(key, val) {
+            return redisClient.evalScript(script, sha1, 1, key, val);
+        };
+    })();
 
-    var script = 'return {KEYS[1], ARGV[1], ARGV[2]}';
-    var sha1 = redisclient.sha1sum(script);
-    redisclient.evalScript(script, sha1, 1, 'key1', 'arg1', 'arg2')
-    .then(console.log)
-    .catch(console.error);
-    //sha1 is optional
-    redisclient.evalScript(script, 1, 'key1', 'arg1', 'arg2')
-    .then(console.log)
-    .catch(console.error);
-~~~
+    YourBussiness.prototype.get = (function() {
+        var script = `
+            redis.pcall('select', 1);
+            local r = redis.call('get', 'blababa');
+            redis.pcall('select', 2);
+            .......
+        `;
+        var sha1 = redisClient.sha1sum(script);
+        return function(key, val) {
+            return redisClient.evalScript(script);
+        };
+    })();
 
-* You can use redisClient and redisEmbededLua together(not recommend)
-
-~~~js
-    var redis = require("redis"),
-        redisclient = redis.createClient();
-    var redisEmbededLua = require('redis-embeded-lua');
-
-    redisEmbededLua.evalScript(redisclient, "return 'Hello world.'").then(console.log);
+    var yb = new YourBussiness();
+    yb.insert('kkk', 'vvv');
+    yb.get('kkk');
 ~~~
 
 ## API
@@ -97,19 +98,15 @@ sha1, string
 
 ## example
 
-* The first example, count every key's type in all DB
-* The second example, insert a record in DB
+* audit key's type in all DB
 
-__Tip:__ put method in closer, performance-promote.
-
-example 1
 ~~~js
     var redis = require("redis"),
         redisClient = redis.createClient();
     var redisEmbededLua = require('redis-embeded-lua');
-
+ 
     redisEmbededLua.inject(redisClient);
-
+ 
     var maxDBConf = 16;
     var yourBussinessDBAudit = (function() {
         var script = `
@@ -139,7 +136,7 @@ example 1
             return redisClient.evalScript(script);
         };
     })();
-
+ 
     return yourBussinessDBAudit()
     .then(function(ret) {
         console.log(ret);
@@ -151,42 +148,4 @@ example 1
     });
 ~~~
 
-example 2
-~~~js
-    var redis = require("redis"),
-        redisClient = redis.createClient();
-    var redisEmbededLua = require('redis-embeded-lua');
 
-    redisEmbededLua.inject(redisClient);
-
-    var yourBussinessInsertData = (function () {
-        var script = `
-            local userinfo = cjson.decode(ARGV[1])
-            local keyExistsFlag = redis.call('exists', KEYS[1])
-            for k,v in pairs(userinfo) do
-                redis.call('hset', KEYS[1], k, v)
-            end
-            redis.call('hset', KEYS[1], 'updateTime', ARGV[2])
-            if keyExistsFlag == 0 then
-                redis.call('hset', KEYS[1], 'createTime', ARGV[2])
-            end
-            return {'ok', keyExistsFlag == 0 and 'insert '..KEYS[1] or 'update '..KEYS[1]}
-        `;
-        var sha1 = redisClient.sha1sum(script);
-
-        return function(key, json) {
-            return redisClient.evalScript(script, sha1, 1, 
-                key, JSON.stringify(json), new Date().toString());
-        }
-    })();
-
-    yourBussinessInsertData('key1', {id: 1, name:'abc'})
-    .then(function(ret) {
-        console.log(ret);
-        redisClient.unref();
-    })
-    .catch(function(err) {
-        console.error(err);
-        redisClient.unref();
-    });
-~~~
