@@ -1,44 +1,5 @@
 node-redis-embeded-lua
 ==================
-
-~~~js
-    var redis = require("redis"),
-        redisClient = redis.createClient();
-    var redisEmbededLua = require('redis-embeded-lua');
-
-    redisEmbededLua.inject(redisClient);
-
-    var yourBussinessDBCount = (function() {
-        var script = `
-            local r = redis.call('keys', '*')
-            local count = 0
-            for k,v in ipairs(r) do
-                count = count + 1
-            end
-            return count
-        `;
-        return function() {
-            return redisClient.evalScript(script);
-        }
-    })()
-
-    yourBussinessDBCount()
-    .then(console.log)
-    .catch(console.error);
-~~~
-
-## Installation
-`npm install redis-embeded-lua`
-
-## Embeded Lua Script In NodeJS
-
-* I want to write Lua Script in my code directly, but not in another lua file
-* Just like embeded SQL in C language
-* My Lua Script embeded in js-class-files, one method one Lua Script
-* So, my bussiness code with my Lua Script(like storage procedure) together
-
-## Usage
-
 ~~~js
     function YourBussiness() {
     }
@@ -72,6 +33,44 @@ node-redis-embeded-lua
     var yb = new YourBussiness();
     yb.insert('kkk', 'vvv');
     yb.get('kkk');
+~~~
+
+## Installation
+`npm install redis-embeded-lua`
+
+## Embeded Lua Script In NodeJS
+
+* I want to write Lua Script in my code directly, but not in another lua file
+* Just like embeded SQL in C language
+* My Lua Script embeded in js-class-files, one method one Lua Script
+* So, my bussiness code with my Lua Script(like storage procedure) together
+
+## Hello world
+
+~~~js
+    var redis = require("redis"),
+        redisClient = redis.createClient();
+    var redisEmbededLua = require('redis-embeded-lua');
+
+    redisEmbededLua.inject(redisClient);
+
+    var yourBussinessDBCount = (function() {
+        var script = `
+            local r = redis.call('keys', '*')
+            local count = 0
+            for k,v in ipairs(r) do
+                count = count + 1
+            end
+            return count
+        `;
+        return function() {
+            return redisClient.evalScript(script);
+        }
+    })()
+
+    yourBussinessDBCount()
+    .then(console.log)
+    .catch(console.error);
 ~~~
 
 ## API
