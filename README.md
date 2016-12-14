@@ -1,32 +1,35 @@
 node-redis-embeded-lua
 ==================
 ~~~js
-    function YourBussiness() {
+    class YourBussiness() {
+        constructor(redisClient) {
+            this.client = redisClient;
+        }
     }
 
-    YourBussiness.prototype.insert = (function() {
+    YourBussiness.prototype.set = (function() {
         var script = `
             redis.pcall('select', 1);
-            local r = redis.call('set', 'blaba');
+            local r = redis.call('set', 'blablaa');
             redis.pcall('select', 2);
             .......
         `;
         var sha1 = redisClient.sha1sum(script);
         return function(key, val) {
-            return redisClient.evalScript(script, sha1, 1, key, val);
+            return this.client.evalScript(script, sha1, 1, key, val);
         };
     })();
 
     YourBussiness.prototype.get = (function() {
         var script = `
             redis.pcall('select', 1);
-            local r = redis.call('get', 'blababa');
+            local r = redis.call('get', 'blablaba');
             redis.pcall('select', 2);
             .......
         `;
         var sha1 = redisClient.sha1sum(script);
         return function(key, val) {
-            return redisClient.evalScript(script);
+            return this.client.evalScript(script);
         };
     })();
 
