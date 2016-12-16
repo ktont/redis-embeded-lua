@@ -1,5 +1,6 @@
 var crypto = require('crypto');
 var replaceComment = require('./parseComment.js');
+var fs = require('fs');
 
 function sha1sum(text) {
     return crypto.createHash('sha1').update(text).digest('hex');
@@ -81,26 +82,18 @@ function evalScript() {
     });
 }
 
-var injectLua = `
-    redis.TRUE = 1
-    redis.FALSE = 0
-    redis.exists = function(key)
-        if redis.call('exists', key) == redis.TRUE then
-            return redis.TRUE
-        end
-        return nil
-    end
-`;
-var injectSha1 = sha1sum(injectLua);
+
+var globalLib = fs.readFileSync('./lib/global.lua').toString();
+var globalSha1 = sha1sum(injectLua);
 
 function injectFunction(redisClient) {
     redisClient.evalScript = evalScript.bind(redisClient);
     redisClient.sha1sum = sha1sum;
     redisClient.sha1pack = sha1pack;
 
-    redisClient.evalScript(injectLua, injectSha1);
+    redisClient.evalScript(globalLib, globalSha1);
     redisClient.on('ready', function() {
-        redisClient.evalScript(injectLua, injectSha1);
+        redisClient.evalScript(globalLib, globalSha1);
     });
 }
 

@@ -9,13 +9,13 @@ node-redis-embeded-lua
 
     YourBussiness.prototype.set = (function() {
         var script = redisClient.sha1pack(`
-            redis.pcall('select', 1);
+            redis.select(1)
             redis.call('lpush', KEYS[1]);
             /*
              * you can comment here!
              */
             // or comment single
-            redis.pcall('select', 2);
+            redis.select(1)
             local r = redis.call('set', KEYS[1], ARGS[1]);
             .......
         `);
@@ -26,9 +26,9 @@ node-redis-embeded-lua
 
     YourBussiness.prototype.get = (function() {
         var script = redisClient.sha1pack(`
-            redis.pcall('select', 1);
+            redis.select(1)
             redis.call('rpop', KEYS[1])
-            redis.pcall('select', 2);
+            redis.select(1)
             local r = redis.call('get', 'blablaba');
             .......
         `);
@@ -90,12 +90,32 @@ node-redis-embeded-lua
     .catch(console.error);
 ~~~
 
+
+## LUA API
+
+### redis.select(db)
+
+select `db` number
+
+### redis.exists(key)
+
+`if redis.exists(key) then blablabla end`
+
+### redis.TRUE
+
+1 
+
+### redis.FALSE
+
+nil
+
+
 ## API
 
 ### redisClient.evalScript(scriptPack, keyCount, key1, key2 ... arg1, arg2 ...)
 
 #### params
-* scriptPack:  lua script pack; Object `{script:'',sha1:'sha1num'}` required
+* scriptPack:  lua script pack; Object, return by `redisClient.sha1pack(script)` required
 * keyCount:    keys's count. like node-redis's eval method. It's optional when it is zero
 * key1 - keyn: keys; optional
 * arg1 - argn: arguments; optional
@@ -117,15 +137,6 @@ Object, lua script pack
     sha1:'sha1num'
 }
 ```
-
-### redisClient.sha1sum(script)
-
-
-#### params
-* script: your lua scirpt
-
-#### return
-sha1, string
 
 ## example
 
