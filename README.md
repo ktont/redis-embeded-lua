@@ -45,7 +45,9 @@ node-redis-embeded-lua
 
 ## I want
 
-* I want to write Lua Script in my code directly, rather than another lua file. Just like embeded SQL in C language. Embeded Lua Script In NodeJS!
+* I want to write Lua Script in my code directly, rather than another lua file. 
+    Just like embeded SQL in C language. 
+    Embeded Lua Script In NodeJS!
 * I want Lua Script to have more `lib` and `utility`. e.g. `redis.exists(key)`
 
 ## Killing Feathers
@@ -144,3 +146,51 @@ Object, lua script pack
 
 * audit key's type in all DB
 node examples/auditDB.js
+
+~~~js
+    var redis = require("redis"),
+        redisClient = redis.createClient();
+    var redisEmbededLua = require('redis-embeded-lua');
+
+    redisEmbededLua.inject(redisClient);
+
+    var maxDBConf = 16;
+    var yourBussinessDBAudit = (function() {
+        var script = redisClient.sha1pack(`
+            local result = {}
+            for i = 0, ${maxDBConf} do
+                local err = redis.select(i)
+                if err then
+                    return result
+                end
+                local r = redis.call('keys', '*')
+                local tmp = {}
+                for k,v in ipairs(r) do
+                    local ty = redis.call('type', v)['ok']
+                    if not tmp[ty] then tmp[ty] = 0; end
+                    tmp[ty] = tmp[ty] + 1
+                end
+                local lst = {}
+                for k,v in pairs(tmp) do
+                    table.insert(lst, k)
+                    table.insert(lst, v)
+                end
+                table.insert(result, lst)
+            end
+            return result
+        `);
+        return function () {
+            return redisClient.evalScript(script);
+        };
+    })();
+
+    return yourBussinessDBAudit()
+    .then(function(ret) {
+        console.log(ret);
+        redisClient.unref();
+    })
+    .catch(function(err) {
+        console.error(err);
+        redisClient.unref();
+    });
+~~~
