@@ -19,6 +19,7 @@ redis.exists = function(key)
     return nil
 end
 redis.select = function(db) 
-    return redis.pcall('select', db)
+    local ret = redis.pcall('select', db)
+    return ret.err
 end
 

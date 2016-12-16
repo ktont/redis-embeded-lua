@@ -9,8 +9,8 @@ var yourBussinessDBAudit = (function() {
     var script = redisClient.sha1pack(`
         local result = {}
         for i = 0, ${maxDBConf} do
-            local r = redis.select(i)
-            if r.err then
+            local err = redis.select(i)
+            if err then
                 return result
             end
             local r = redis.call('keys', '*')
