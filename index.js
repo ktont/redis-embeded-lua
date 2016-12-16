@@ -83,8 +83,8 @@ function evalScript() {
 }
 
 
-var globalLib = fs.readFileSync('./lib/global.lua').toString();
-var globalSha1 = sha1sum(injectLua);
+var globalLib = fs.readFileSync(__dirname+'/lib/global.lua').toString();
+var globalSha1 = sha1sum(globalLib);
 
 function injectFunction(redisClient) {
     redisClient.evalScript = evalScript.bind(redisClient);
