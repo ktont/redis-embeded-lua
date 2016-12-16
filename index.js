@@ -1,8 +1,19 @@
 var crypto = require('crypto');
+var replaceComment = require('./parseComment.js');
 
 function sha1sum(text) {
     return crypto.createHash('sha1').update(text).digest('hex');
 }
+
+function sha1pack(text) {
+    var text = replaceComment(text);
+    var sha1 = crypto.createHash('sha1').update(text).digest('hex');
+    return {
+        text: text,
+        sha1: sha1
+    }
+}
+
 /*
  * 在redis中执行指定的脚本 参考redis的eval命令 http://www.redis.cn/commands/eval.html
  * @params
@@ -29,15 +40,23 @@ function evalScript() {
     var self = this;
     var args = [].slice.call(arguments, 0);
     var script;
-    if(typeof(args[1]) == 'number' || args.length == 1) {
-        script = args[0];
-        args[0] = sha1sum(script);
-        args.length == 1 && args.push(0);
-    } else if(typeof(args[2]) == 'number' || args.length == 2) {
-        script = args.shift();
+    if(args[0] && typeof(args[0]) == 'object') {
+        //version > 0.2.3
+        script = args[0].text;
+        args[0] = args[0].sha1;
         args.length == 1 && args.push(0);
     } else {
-        return Promise.reject(new Error('parameter invalid.'));
+        //version <= 0.2.3
+        if(typeof(args[1]) == 'number' || args.length == 1) {
+            script = args[0];
+            args[0] = sha1sum(script);
+            args.length == 1 && args.push(0);
+        } else if(typeof(args[2]) == 'number' || args.length == 2) {
+            script = args.shift();
+            args.length == 1 && args.push(0);
+        } else {
+            return Promise.reject(new Error('parameter invalid.'));
+        }
     }
 
     args.push(null);
@@ -62,22 +81,40 @@ function evalScript() {
     });
 }
 
+var injectLua = `
+    redis.TRUE = 1
+    redis.FALSE = 0
+    redis.exists = function(key)
+        if redis.call('exists', key) == redis.TRUE then
+            return redis.TRUE
+        end
+        return nil
+    end
+`;
+var injectSha1 = sha1sum(injectLua);
+
 function injectFunction(redisClient) {
     redisClient.evalScript = evalScript.bind(redisClient);
     redisClient.sha1sum = sha1sum;
+    redisClient.sha1pack = sha1pack;
+
+    redisClient.evalScript(injectLua, injectSha1);
+    redisClient.on('ready', function() {
+        redisClient.evalScript(injectLua, injectSha1);
+    });
 }
 
 exports.inject = injectFunction;
 
 //////////////////////////////////////
 exports.sha1sum = sha1sum;
-
-exports.evalScript = function() {
-    var args = [].slice.call(arguments, 0);
-    var redisClient = args.shift();
-    if(typeof redisClient != 'object') {
-        return Promise.reject(new Error('parameter invalid.'));
-    }
-
-    return evalScript.apply(redisClient, args);
-}
+//
+// exports.evalScript = function() {
+//     var args = [].slice.call(arguments, 0);
+//     var redisClient = args.shift();
+//     if(typeof redisClient != 'object') {
+//         return Promise.reject(new Error('parameter invalid.'));
+//     }
+//
+//     return evalScript.apply(redisClient, args);
+// }
