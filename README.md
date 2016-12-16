@@ -6,17 +6,15 @@ node-redis-embeded-lua
             this.client = redisClient;
         }
     }
-
     YourBussiness.prototype.set = (function() {
         var script = redisClient.sha1pack(`
             redis.select(1)
             redis.call('lpush', KEYS[1]);
+            redis.select(2)
+            local r = redis.call('set', KEYS[1], ARGS[1]);
             /*
              * you can comment here!
              */
-            // or comment single
-            redis.select(1)
-            local r = redis.call('set', KEYS[1], ARGS[1]);
             .......
         `);
         return function(key, val) {
@@ -28,7 +26,7 @@ node-redis-embeded-lua
         var script = redisClient.sha1pack(`
             redis.select(1)
             redis.call('rpop', KEYS[1])
-            redis.select(1)
+            redis.select(2)
             local r = redis.call('get', 'blablaba');
             .......
         `);
@@ -154,7 +152,7 @@ Object, lua script pack
         var script = redisClient.sha1pack(`
             local result = {}
             for i = 0, ${maxDBConf} do
-                local r = redis.pcall('select', i)
+                local r = redis.select(i)
                 if r.err then
                     return result
                 end
