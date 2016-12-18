@@ -45,10 +45,14 @@ node-redis-embeded-lua
 
 ## I want
 
-* I want to write Lua Script in my code directly, rather than another lua file. 
-    Just like embeded SQL in C language. 
-    Embeded Lua Script In NodeJS!
-* I want Lua Script to have more `lib` and `utility`. e.g. `redis.exists(key)`
+1) Embeded Lua Script In NodeJS
+> I want to write Lua Script in my code directly,
+> rather than another lua file.
+> Just like embeded SQL in C language.
+
+2) Upgrade Lua
+> * e.g. `redis.exists(key)`
+> * e.g. `redis.TRUE` `redis.FALSE`
 
 ## Killing Feathers
 
@@ -97,7 +101,7 @@ node-redis-embeded-lua
 
 select `db` number
 
-return 
+return
 success: nil  
 fail:    message  
 
@@ -107,14 +111,14 @@ fail:    message
 
 ### redis.TRUE
 
-1 
+1
 
 ### redis.FALSE
 
 nil
 
 
-## API
+## JavaScirpt API
 
 ### redisClient.evalScript(scriptPack, keyCount, key1, key2 ... arg1, arg2 ...)
 
