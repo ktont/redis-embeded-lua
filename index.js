@@ -1,13 +1,23 @@
 var crypto = require('crypto');
 var replaceComment = require('./parseComment.js');
 var fs = require('fs');
+var selectLua = fs.readFileSync(__dirname+'/lib/select.lua').toString();
 
 function sha1sum(text) {
     return crypto.createHash('sha1').update(text).digest('hex');
 }
 
+var dbMap = '';
+
 function sha1pack(text) {
-    var text = replaceComment(text);
+    var text = [
+        dbMap,
+        selectLua, 
+        'local function _()',
+            replaceComment(text),
+        'end',
+        'return _()'
+    ].join('\n');
     var sha1 = crypto.createHash('sha1').update(text).digest('hex');
     return {
         text: text,
@@ -82,6 +92,15 @@ function evalScript() {
     });
 }
 
+function configDBName(conf) {
+    var arr = [];
+    for(var k in conf) {
+        arr.push(`["${conf[k]}"] = ${k}`);
+    }
+
+    dbMap = 'redis._DBMAP = {' + arr.join(',') + '}';
+    return;
+}
 
 var globalLib = fs.readFileSync(__dirname+'/lib/global.lua').toString();
 var globalSha1 = sha1sum(globalLib);
@@ -90,6 +109,7 @@ function injectFunction(redisClient) {
     redisClient.evalScript = evalScript.bind(redisClient);
     redisClient.sha1sum = sha1sum;
     redisClient.sha1pack = sha1pack;
+    redisClient.configDBName = configDBName;
 
     redisClient.evalScript(globalLib, globalSha1);
     redisClient.on('ready', function() {

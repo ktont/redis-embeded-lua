@@ -4,14 +4,23 @@ node-redis-embeded-lua
     class YourBussiness() {
         constructor(redisClient) {
             this.client = redisClient;
+            redisEmbededLua.inject(this.client);
+            this.client.configDBName({
+                0:  'default',
+                1:  'userinfo',
+                2:  'session',
+                4:  'order',
+                11: 'statics',
+                15: 'test'
+            });
         }
     }
     YourBussiness.prototype.set = (function() {
         var script = redisClient.sha1pack(`
-            redis.select(1)
-            redis.call('lpush', KEYS[1]);
-            redis.select(2)
-            local r = redis.call('set', KEYS[1], ARGS[1]);
+            select('userinfo')
+            call('set', KEYS[1], ARGS[1]);
+            select('statics')
+            call('incr', KEYS[1]);
             /*
              * you can comment here!
              */
@@ -24,10 +33,11 @@ node-redis-embeded-lua
 
     YourBussiness.prototype.get = (function() {
         var script = redisClient.sha1pack(`
-            redis.select(1)
-            redis.call('rpop', KEYS[1])
-            redis.select(2)
-            local r = redis.call('get', 'blablaba');
+            select('userinfo')
+            call('get', KEYS[1])
+            select('statics')
+            local r = call('get', KEYS[1]);
+            blablabla
             .......
         `);
         return function(key) {
@@ -51,13 +61,13 @@ node-redis-embeded-lua
 > Just like embeded SQL in C language.
 
 2) Upgrade Lua
-> * e.g. `redis.exists(key)`
-> * e.g. `redis.TRUE` `redis.FALSE`
+> * e.g. method   `exists(key)`
+> * e.g. property `selected_db`
 
 ## Killing Feathers
 
 * `/* */, //` comment in Lua Script rather than `--[[]]--, --`
-*  `redis.exists(key)` rather than `redis.call('exists', key) == 1`
+*  `exists(db, key)` rather than `select db; redis.call('exists', key) == 1; select back;`
 
 ## Hello world
 
@@ -68,9 +78,14 @@ node-redis-embeded-lua
 
     redisEmbededLua.inject(redisClient);
 
+    redisClient.configDBName({
+        0: 'hello'
+    });
+
     var yourBussinessDBCount = (function() {
         var script = redisClient.sha1pack(`
-            local r = redis.call('keys', '*')
+            select('hello')
+            local r = call('keys', '*')
             local count = 0
             for k,v in ipairs(r) do
                 /*
@@ -78,7 +93,7 @@ node-redis-embeded-lua
                  * v: the redis key
                  */
                 //this lua function added by me. It's new.
-                if redis.exists(v) then
+                if exists('hello', v) then
                     count = count + 1
                 end
             end
@@ -97,48 +112,69 @@ node-redis-embeded-lua
 
 ## LUA API
 
-### redis.select(db)
+### select(db)
 
-select `db` number
+select `db`. If `db` is string name, you must use `redisClient.configDBName(conf)`
+
+```
+    select(1)
+    select('userinfo')
+```
 
 return
-success: nil  
-fail:    message  
+* success: nil  
+* fail:    message  
 
-### redis.exists(key)
+### exists([db,] key)
 
-`if redis.exists(key) then blablabla end`
+* db is option. number(db index) or string(db config name). 
 
-### redis.TRUE
+```
+    back = selected_db
+    select(db)
+    exists(key)
+    select(back)
+    return 
+
+```
+
+__Note__: If you use configDBName, you must use `select(db)` instead of `redis.select(n)`
+
+return true or false
+
+for example:
+* `if exists(key) then blablabla end`
+* `if exists(1, key) then blablabla end`
+* `if exists('session', key) then blablabla end`
+
+### selected_db
+
+number, the current selected database number
+
+### TRUE
 
 1
 
-### redis.FALSE
+### FALSE
 
 nil
-
 
 ## JavaScirpt API
 
 ### redisClient.evalScript(scriptPack, keyCount, key1, key2 ... arg1, arg2 ...)
 
-#### params
 * scriptPack:  lua script pack; Object, return by `redisClient.sha1pack(script)` required
 * keyCount:    keys's count. like node-redis's eval method. It's optional when it is zero
 * key1 - keyn: keys; optional
 * arg1 - argn: arguments; optional
 
-#### return
-Promise
+return Promise
 
 ### redisClient.sha1pack(script)
 
-### params
-
 * script: your lua scirpt; string
 
-### return
-Object, lua script pack
+return object, lua script pack
 ```
 {
     text:'lua stuff',
@@ -146,9 +182,22 @@ Object, lua script pack
 }
 ```
 
+### redisClient.configDBName(conf)
+
+* conf Object
+```
+{
+    0: 'default',
+    1: 'session',
+    5: ...
+}
+```
+__Note__: If you use configDBName, you must use `select(db)` instead of `redis.select(n)`
+
 ## example
 
 * audit key's type in all DB
+
 node examples/auditDB.js
 
 ~~~js
@@ -163,14 +212,14 @@ node examples/auditDB.js
         var script = redisClient.sha1pack(`
             local result = {}
             for i = 0, ${maxDBConf} do
-                local err = redis.select(i)
+                local err = select(i)
                 if err then
                     return result
                 end
-                local r = redis.call('keys', '*')
+                local r = call('keys', '*')
                 local tmp = {}
                 for k,v in ipairs(r) do
-                    local ty = redis.call('type', v)['ok']
+                    local ty = call('type', v)['ok']
                     if not tmp[ty] then tmp[ty] = 0; end
                     tmp[ty] = tmp[ty] + 1
                 end
@@ -198,3 +247,15 @@ node examples/auditDB.js
         redisClient.unref();
     });
 ~~~
+
+## issues
+
+processing:
+
+* support JSON storage?
+
+resolved:
+* is there any command return the currently selected db?
+* Unfortunately, Redis does not provide a way to associate names with the different databases, so you will have to keep track of what data goes where yourself.
+
+

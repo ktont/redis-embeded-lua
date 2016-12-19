@@ -9,14 +9,14 @@ var yourBussinessDBAudit = (function() {
     var script = redisClient.sha1pack(`
         local result = {}
         for i = 0, ${maxDBConf} do
-            local err = redis.select(i)
+            local err = select(i)
             if err then
                 return result
             end
-            local r = redis.call('keys', '*')
+            local r = call('keys', '*')
             local tmp = {}
             for k,v in ipairs(r) do
-                local ty = redis.call('type', v)['ok']
+                local ty = call('type', v)['ok']
                 if not tmp[ty] then tmp[ty] = 0; end
                 tmp[ty] = tmp[ty] + 1
             end
