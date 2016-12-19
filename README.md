@@ -56,9 +56,9 @@ node-redis-embeded-lua
 ## I want
 
 1) Embeded Lua Script In NodeJS
-> I want to write Lua Script in my code directly,
-> rather than another lua file.
-> Just like embeded SQL in C language.
+> * I want to write Lua Script in my code directly,
+> * rather than another lua file.
+> * Just like embeded SQL in C language.
 
 2) Upgrade Lua
 > * e.g. method   `exists(key)`
@@ -123,7 +123,15 @@ select `db`. If `db` is string name, you must use `redisClient.configDBName(conf
 
 return
 * success: nil  
-* fail:    message  
+* fail:    message
+
+### call(ops, key, arg, ...)
+
+alias for redis.call()
+
+### pcall(ops, key, arg, ...)
+
+alias for redis.pcall
 
 ### exists([db,] key)
 
@@ -138,7 +146,7 @@ return
 
 ```
 
-__Note__: If you use configDBName, you must use `select(db)` instead of `redis.select(n)`
+__Note__: If you use configDBName, you must use `select(db)` instead of `redis.call('select', n)`
 
 return true or false
 
