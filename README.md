@@ -2,7 +2,7 @@ node-redis-embeded-lua
 ==================
 
 ## Hello world
-
+node this.js
 ~~~js
     var redis = require("redis"),
         redisClient = redis.createClient();
@@ -10,33 +10,32 @@ node-redis-embeded-lua
 
     redisEmbededLua.inject(redisClient);
 
-    var yourBussinessDBCount = (function() {
-        var script = redisClient.sha1pack(`
-            //call is the shorthand for redis.call
-            local r = call('keys', '*')
-            local count = 0
-            for k,v in ipairs(r) do
-                /*
-                 * k: index of Array
-                 * v: the redis key
-                 */
-                if exists(v) then
-                    count = count + 1
-                end
+    var pack = redisClient.sha1pack(`
+        //call is the shorthand for redis.call
+        local r = call('keys', '*')
+        local count = 0
+        for k,v in ipairs(r) do
+            /*
+             * k: index of Array
+             * v: the redis key
+             */
+            if exists(v) then
+                count = count + 1
             end
-            return 'the dbsize: '..count
-        `);
-        return function() {
-            return redisClient.evalScript(script);
-        }
-    })()
+        end
+        return 'the dbsize: '..count
+    `);
 
-    yourBussinessDBCount()
-    .then(console.log)
-    .catch(console.error);
+    redisClient.evalScript(pack)
+    .then(function(ret) {
+        console.log(ret);
+        redisClient.unref();
+    })
+    .catch(function(e) {
+        console.error(e.toString());
+        process.exit(1);
+    });
 ~~~
-
-node examples/hello.js
 
 ## Installation
 `npm install redis-embeded-lua`
@@ -68,7 +67,7 @@ node examples/hello.js
             return this.client.evalScript(script, 1, key, val);
         };
     })();
-
+ 
     YourBussiness.prototype.get = (function() {
         var script = redisClient.sha1pack(`
             select('statics')
@@ -81,14 +80,22 @@ node examples/hello.js
         };
     })();
     
-    var yb = new YourBussiness
+    var yb = new YourBussiness();
 ~~~
 
 ## LUA API
 
+### call(ops, key, arg, ...)
+
+alias for redis.call()
+
+### pcall(ops, key, arg, ...)
+
+alias for redis.pcall
+
 ### select(db)
 
-* select db
+* select index
 ```
     select(1)
 ```
@@ -105,14 +112,6 @@ return value
 * fail:    message
 
 __Note__: use `select(n)` instead of `redis.call('select', n)`
-
-### call(ops, key, arg, ...)
-
-alias for redis.call()
-
-### pcall(ops, key, arg, ...)
-
-alias for redis.pcall
 
 ### exists([db,] key)
 
