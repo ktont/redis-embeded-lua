@@ -2,7 +2,7 @@ node-redis-embeded-lua
 ==================
 
 ## Hello world
-node this.js
+node ./this.js
 ~~~js
     var redis = require("redis"),
         redisClient = redis.createClient();
@@ -67,7 +67,7 @@ node this.js
             return this.client.evalScript(script, 1, key, val);
         };
     })();
- 
+
     YourBussiness.prototype.get = (function() {
         var script = redisClient.sha1pack(`
             select('statics')
@@ -79,10 +79,10 @@ node this.js
             return this.client.evalScript(script, 1, key);
         };
     })();
-    
+
     var yb = new YourBussiness();
 ~~~
-
+---
 ## LUA API
 
 ### call(ops, key, arg, ...)
@@ -115,7 +115,7 @@ __Note__: use `select(n)` instead of `redis.call('select', n)`
 
 ### exists([db,] key)
 
-* db is option. number(db index) or string(db config name). 
+* db is option. number(db index) or string(db config name).
 
 for examples:
 
@@ -139,6 +139,7 @@ number, the current selected database number
 
 nil
 
+---
 ## JavaScirpt API
 
 ### redisClient.evalScript(scriptPack, keyCount, key1, key2 ... arg1, arg2 ...)
@@ -253,4 +254,3 @@ processing:
 resolved:
 * is there any command return the currently selected db?
 * Unfortunately, Redis does not provide a way to associate names with the different databases, so you will have to keep track of what data goes where yourself.
-
