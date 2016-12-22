@@ -3,6 +3,9 @@ local TRUE = 1
 local FALSE = nil
 local call  = redis.call
 local pcall = redis.pcall
+local require = function(file) 
+    return file
+end
 local select = function(n)
     if type(n) == 'string' then
         n = redis._DBMAP[n]

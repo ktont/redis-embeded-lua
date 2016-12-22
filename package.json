@@ -1,6 +1,6 @@
 {
   "name": "redis-embeded-lua",
-  "version": "0.4.4",
+  "version": "0.4.1",
   "description": "Redis Lua Script Embeded In NodeJS",
   "main": "index.js",
   "scripts": {
@@ -12,18 +12,49 @@
   },
   "keywords": [
     "redis",
+    "script",
     "lua",
     "embeded",
     "embed",
-    "scripting"
+    "evalsha",
+    "eval"
   ],
   "dependencies": {
     "redis": "*"
   },
-  "author": "ktont",
+  "author": {
+    "name": "ktont"
+  },
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/ktont/redis-embeded-lua/issues"
   },
-  "homepage": "https://github.com/ktont/redis-embeded-lua#readme"
+  "homepage": "https://github.com/ktont/redis-embeded-lua#readme",
+  "gitHead": "66c11c83cc70087940e77eda4afb387e035130f3",
+  "_id": "redis-embeded-lua@0.4.1",
+  "_shasum": "19e576049fc711a0630c3db17957638be51bfbbf",
+  "_from": "redis-embeded-lua@*",
+  "_npmVersion": "2.11.3",
+  "_nodeVersion": "0.12.7",
+  "_npmUser": {
+    "name": "ktont",
+    "email": "287179891@qq.com"
+  },
+  "dist": {
+    "shasum": "19e576049fc711a0630c3db17957638be51bfbbf",
+    "tarball": "https://registry.npmjs.org/redis-embeded-lua/-/redis-embeded-lua-0.4.1.tgz"
+  },
+  "maintainers": [
+    {
+      "name": "ktont",
+      "email": "287179891@qq.com"
+    }
+  ],
+  "_npmOperationalInternal": {
+    "host": "packages-18-east.internal.npmjs.com",
+    "tmp": "tmp/redis-embeded-lua-0.4.1.tgz_1482130262766_0.15586788207292557"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/redis-embeded-lua/-/redis-embeded-lua-0.4.1.tgz",
+  "readme": "ERROR: No README data found!"
 }

@@ -2,6 +2,7 @@ var crypto = require('crypto');
 var replaceComment = require('./parseComment.js');
 var fs = require('fs');
 var selectLua = fs.readFileSync(__dirname+'/lib/select.lua').toString();
+var luaModule = require('./luaModule.js');
 
 function sha1sum(text) {
     return crypto.createHash('sha1').update(text).digest('hex');
@@ -10,19 +11,76 @@ function sha1sum(text) {
 var dbMap = '';
 
 function sha1pack(text) {
+    var ext = replaceComment(text);
     var text = [
         dbMap,
         selectLua, 
         'local function _()',
-            replaceComment(text),
+            ext.script,
         'end',
         'return _()'
     ].join('\n');
     var sha1 = crypto.createHash('sha1').update(text).digest('hex');
+    loadModules(ext.modules);
     return {
+        _modules_: ext.modules,
         text: text,
         sha1: sha1
+    };
+}
+
+function configDBName(conf) {
+    var arr = [];
+    for(var k in conf) {
+        arr.push(`["${conf[k]}"] = ${k}`);
     }
+
+    dbMap = 'redis._DBMAP = {' + arr.join(',') + '}';
+    return;
+}
+
+function loadModules(client, modules) {
+    return new Promise(function(resolve, reject) [
+        (function scan() {
+            var file = modules.shift();
+            if(!file)
+                return resolve();
+            var cont = fs.readFileSync(file, 'utf8');
+            var script = `
+                local exports = {}
+                ${cont},
+                redis.moduleCaching["${file}"] = exports
+            `;
+            client.script('load', script, function(err, sha1) {
+                if(err)
+                    return reject(err);
+                scan();
+            });
+        })();
+    });
+}
+
+function againAgain(client, script, args) {
+    args.push(null);
+    return new Promise(function(resolve, reject) {
+        (function scan(retry) {
+            args[args.length-1] = function(err, ret) {
+                if(err && err.message.indexOf('NOSCRIPT') >=0 && !retry) {
+                    return client.script('load', script, function(err, sha1) {
+                        if(err) {
+                            return reject(err);
+                        }
+                        scan(true);
+                    });
+                } else if(err) {
+                    return reject(err);
+                } else {
+                    return resolve(ret);
+                }
+            }
+            client.evalsha.apply(client, args);
+        })(false);
+    });
 }
 
 /*
@@ -53,9 +111,20 @@ function evalScript() {
     var script;
     if(args[0] && typeof(args[0]) == 'object') {
         //version > 0.2.3
-        script = args[0].text;
-        args[0] = args[0].sha1;
+        var pack = args[0];
+        script = pack.text;
+        args[0] = pack.sha1;
         args.length == 1 && args.push(0);
+        if(pack._modules_) {
+            return loadModules(pack._modules_)
+            then(function() {
+                delete pack._modules_;
+                return againAgain(self, script, args);
+            });
+            .catch(function(err) {
+                throw err;
+            });
+        }
     } else {
         //version <= 0.2.3
         if(typeof(args[1]) == 'number' || args.length == 1) {
@@ -69,37 +138,7 @@ function evalScript() {
             return Promise.reject(new Error('parameter invalid.'));
         }
     }
-
-    args.push(null);
-    return new Promise(function(resolve, reject) {
-        (function againAgain(retry) {
-            args[args.length-1] = function(err, ret) {
-                if(err && err.message.indexOf('NOSCRIPT') >=0 && !retry) {
-                    return self.script('load', script, function(err, sha1) {
-                        if(err) {
-                            return reject(err);
-                        }
-                        againAgain(true);
-                    });
-                } else if(err) {
-                    return reject(err);
-                } else {
-                    return resolve(ret);
-                }
-            }
-            self.evalsha.apply(self, args);
-        })(false);
-    });
-}
-
-function configDBName(conf) {
-    var arr = [];
-    for(var k in conf) {
-        arr.push(`["${conf[k]}"] = ${k}`);
-    }
-
-    dbMap = 'redis._DBMAP = {' + arr.join(',') + '}';
-    return;
+    return againAgain(self, script, args);
 }
 
 var globalLib = fs.readFileSync(__dirname+'/lib/global.lua').toString();
@@ -114,20 +153,9 @@ function injectFunction(redisClient) {
     redisClient.evalScript(globalLib, globalSha1);
     redisClient.on('ready', function() {
         redisClient.evalScript(globalLib, globalSha1);
+        luaModule.reload();
     });
 }
 
 exports.inject = injectFunction;
-
-//////////////////////////////////////
 exports.sha1sum = sha1sum;
-//
-// exports.evalScript = function() {
-//     var args = [].slice.call(arguments, 0);
-//     var redisClient = args.shift();
-//     if(typeof redisClient != 'object') {
-//         return Promise.reject(new Error('parameter invalid.'));
-//     }
-//
-//     return evalScript.apply(redisClient, args);
-// }

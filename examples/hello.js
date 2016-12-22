@@ -13,11 +13,12 @@
                  * k: index of Array
                  * v: the redis key
                  */
+                //this lua function added by me. It's new.
                 if exists(v) then
                     count = count + 1
                 end
             end
-            return count
+            return 'the dbsize: '..count
         `);
         return function() {
             return redisClient.evalScript(script);
