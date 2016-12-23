@@ -13,6 +13,7 @@ node ./this.js
     var pack = redisClient.sha1pack(`
         //call is the shorthand for redis.call
         local r = call('keys', '*')
+        local arithmetic = require('./demo/arithmetic.lua')
         local count = 0
         for k,v in ipairs(r) do
             /*
@@ -20,7 +21,7 @@ node ./this.js
              * v: the redis key
              */
             if exists(v) then
-                count = count + 1
+                count = arithmetic.add(count, 1)
             end
         end
         return 'the dbsize: '..count
@@ -35,6 +36,27 @@ node ./this.js
         console.error(e.toString());
         process.exit(1);
     });
+~~~
+
+vi ./demo/arithmetic.lua
+~~~lua
+    exports.PI = 3.14;
+
+    exports.add = function(a,b)
+        return a+b
+    end
+
+    exports.sub = function(a,b)
+        return a-b;
+    end
+
+    exports.mul = function(a,b)
+        return a*b;
+    end
+
+    exports.div = function(a,b)
+        return a/b;
+    end
 ~~~
 
 ## Installation
@@ -85,6 +107,10 @@ node ./this.js
 ---
 ## LUA API
 
+### require('file')
+
+require like nodejs. Only support one level(and in embeded lua).
+
 ### call(ops, key, arg, ...)
 
 alias for redis.call()
@@ -130,14 +156,6 @@ return true or false
 ### selected_db
 
 number, the current selected database number
-
-### TRUE
-
-1
-
-### FALSE
-
-nil
 
 ---
 ## JavaScirpt API
@@ -237,13 +255,14 @@ node examples/auditDB.js
 > * Just like embeded SQL in C language.
 
 2) Upgrade Lua
-> * e.g. method   `exists(key)`
-> * e.g. property `selected_db`
+> * module machinanism
+> * e.g. `exists(key)`
+> * e.g. `select('dbname')`
 
 ## Killing Feathers
 
-* `/* */, //` comment in Lua Script rather than `--[[]]--, --`
-*  `exists(db, key)` rather than `select db; redis.call('exists', key) == 1; select back;`
+* require in lua
+* config redis db name
 
 ## issues
 
