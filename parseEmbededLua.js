@@ -125,7 +125,7 @@ function replaceComment(str) {
         var ret = expect_require(str, i);
         if(ret) {
             i+=ret.length;
-            modules.push(ret);
+            modules.push(ret.file);
             newStr.push(`redis.moduleCaching["${ret.file}"]`);
             continue;
         }

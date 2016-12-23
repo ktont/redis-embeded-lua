@@ -1,6 +1,6 @@
 {
   "name": "redis-embeded-lua",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Redis Lua Script Embeded In NodeJS",
   "main": "index.js",
   "scripts": {
@@ -16,8 +16,8 @@
     "lua",
     "embeded",
     "embed",
-    "evalsha",
-    "eval"
+    "require",
+    "module"
   ],
   "dependencies": {
     "redis": "*"
