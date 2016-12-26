@@ -55,15 +55,15 @@ function evalScript() {
     var args = [].slice.call(arguments, 0);
     var script;
     if(args[0] && typeof(args[0]) == 'object') {
-        //version > 0.2.3
+        //version > 0.5.5
         var pack = args[0];
         script = pack.text;
-        args[0] = pack.sha1;
-        args.length == 1 && args.push(0);
+        args[0] = 0;
+        args.unshift(pack.sha1);
         if(pack._modules_) {
             return luaModule.waitAllPending(pack._modules_)
             .then(function() {
-                pack._modules_ = undefined;
+                delete pack._modules_;
                 return againAgain(self, script, args);
             });
         }

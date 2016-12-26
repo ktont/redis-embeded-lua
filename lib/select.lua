@@ -1,6 +1,4 @@
 local selected_db = 0
-local call  = redis.call
-local pcall = redis.pcall
 local select = function(n)
     if type(n) == 'string' and redis._DBMAP then
         n = redis._DBMAP[n]

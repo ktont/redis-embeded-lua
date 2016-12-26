@@ -1,10 +1,9 @@
 node-redis-embeded-lua
 ==================
 ~~~lua
-exports.PI = 3.14;
-
-exports.add = function(a,b)
-    return a+b
+exports.PI = 3.14
+exports.mul = function(a,b)
+    return a*b
 end
 ~~~
 ~~~js
@@ -16,21 +15,18 @@ redisEmbededLua.inject(redisClient);
 
 var pack = redisClient.sha1pack(`
     local mathDemo = require('./mathDemo.lua')
-    local r = redis.call('keys', '*')
-    local count = 0;
+    call('set radius 5')
+    local radius = call('get radius')
     /*
-     * k: index of Array
-     * v: the redis key
+     * area = pi * radius * radius
      */
-    for k,v in ipairs(r) do
-        count = mathDemo.add(count, 1)
-    end
-    return count
+    return mathDemo.mul(radius*radius, mathDemo.PI)
 `);
 
 redisClient.evalScript(pack)
 .then(function(ret) {
-    console.log('the dbsize:', ret);
+    console.log('the area:', ret);
+    redisClient.del('radius');
     redisClient.unref();
 })
 .catch(function(e) {
@@ -43,7 +39,7 @@ $ npm install redis-embeded-lua
 $ vi mathDemo.lua
 $ vi test.js
 $ node ./test.js
-the dbsize: 5
+the area: 78
 ~~~
 
 ## Installation
@@ -56,38 +52,35 @@ class YourBussiness() {
         this.client = redisClient;
         redisEmbededLua.inject(this.client);
         this.client.configDBName({
-            0:  'default',
-            1:  'userinfo',
-            2:  'session',
-            11: 'statics'
+            0:  'DEFAULT',
+            1:  'USERINFO',
+            11: 'STATICS
         });
     }
 }
 YourBussiness.prototype.set = (function() {
     var script = redisClient.sha1pack(`
-        select('statics')
-        call('incr', 'set'..KEYS[1]);
-        select('userinfo')
-        call('set', KEYS[1], ARGS[1]);
+        select('STATICS')
+        redis.call('incr', 'set'..ARGS[1]);
+        select('USERINFO')
+        redis.call('set', ARGS[1], ARGS[2]);
     `);
     return function(key, val) {
-        return this.client.evalScript(script, 1, key, val);
+        return this.client.evalScript(script, key, val);
     };
 })();
 
 YourBussiness.prototype.get = (function() {
     var script = redisClient.sha1pack(`
-        select('statics')
-        call('incr', 'get'..KEYS[1]);
-        select('userinfo')
-        return call('get', KEYS[1])
+        select('STATICS')
+        redis.call('incr', 'get'..ARGS[1]);
+        select('USERINFO')
+        return call('get', ARGS[1])
     `);
     return function(key) {
-        return this.client.evalScript(script, 1, key);
+        return this.client.evalScript(script, key);
     };
 })();
-
-var yb = new YourBussiness();
 ~~~
 ---
 ## LUA API
@@ -95,6 +88,14 @@ var yb = new YourBussiness();
 ### require('file')
 
 require like nodejs. Only support one level(and in embeded lua).
+
+### call(cmd)
+
+redis.call cmd, like redis-cli command
+
+### pcall(cmd)
+
+redis.pcall cmd, like redis-cli command
 
 ### select(db)
 
@@ -107,7 +108,7 @@ require like nodejs. Only support one level(and in embeded lua).
 `redisClient.configDBName(conf)`, then select(dbname);
 
 ```
-    select('userinfo')
+    select('USERINFO')
 ```
 
 return value
@@ -126,20 +127,18 @@ return true or false
 ---
 ## JavaScirpt API
 
-### redisClient.evalScript(scriptPack, keyCount, key1, key2 ... arg1, arg2 ...)
+### redisClient.evalScript(pack, arg1, arg2 ...)
 
-* scriptPack:  lua script pack; Object, return by `redisClient.sha1pack(script)` required
-* keyCount:    keys's count. like node-redis's eval method. It's optional when it is zero
-* key1 - keyn: keys; optional
-* arg1 - argn: arguments; optional
+* pack: object, return by `redisClient.sha1pack(script)`. required
+* arg1 - argn: arguments. optional
 
 return Promise
 
 ### redisClient.sha1pack(script)
 
-* script: your lua scirpt, string
+* script: lua scirpt, string
 
-return object, lua script pack
+return object
 ```
 {
     text:'lua text',
@@ -149,13 +148,12 @@ return object, lua script pack
 
 ### redisClient.configDBName(conf)
 
-* conf Object
+* conf 
+object
 ```
 {
-    0: 'default',
-    1: 'session',
-    5: ...
+    0: 'DEFAULT',
+    1: 'USERINFO'
 }
 ```
-__Note__: If you use configDBName, you must use `select(db)` instead of `redis.select(n)`
 

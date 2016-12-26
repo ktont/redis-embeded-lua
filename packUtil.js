@@ -2,6 +2,7 @@ var fs = require('fs');
 var crypto = require('crypto');
 var parseEmbededLua = require('./parseEmbededLua.js');
 var selectLua = fs.readFileSync(__dirname+'/lib/select.lua', 'utf8');
+var callLua = fs.readFileSync(__dirname+'/lib/call.lua', 'utf8');
 var luaModule = require('./luaModule.js');
 
 var dbMap = '';
@@ -10,7 +11,8 @@ function sha1pack(text) {
     var ext = parseEmbededLua(text);
     var text = [
         dbMap,
-        selectLua, 
+        selectLua,
+        callLua,
         'local function _()',
             ext.script,
         'end',
@@ -20,11 +22,12 @@ function sha1pack(text) {
     if(ext.modules) {
         luaModule.load(ext.modules);
     }
-    return {
+    var result = {
         text: text,
-        sha1: sha1,
-        _modules_: ext.modules || undefined
+        sha1: sha1
     };
+    if(ext.modules) result._modules_ = ext.modules;
+    return result;
 }
 
 function configDBName(conf) {

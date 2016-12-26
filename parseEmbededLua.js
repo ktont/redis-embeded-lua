@@ -138,8 +138,29 @@ function replaceComment(str) {
     };
 }
 
+function getCallerFile() {
+    try {
+        throw new Error();
+    } catch(e) {
+        var stack = e.stack;
+        var a = stack.match(/at RedisClient.sha1pack \(.*\)\n/)
+        if(!a)
+            throw new Error('match null, require file error');
+        var b = stack.substr(a.index+a[0].length);
+        if(!b)
+            throw new Error('substr null, require file error');
+        if(b.startsWith('    at repl:'))
+            return '';
+        var c = b.match(/\((.*):\d+:\d+\)/)
+        if(!c)
+            throw new Error('2 match null, require file error');
+        return c[1];
+    }
+}
+
 function handle_require(file) {
-    var absolute = path.join(__dirname, file);
+    var callerFile = getCallerFile();
+    var absolute = path.join(path.dirname(callerFile), file)
     if(!fs.existsSync(absolute)) {
         throw new Error('file not found ' + absolute);
     }
