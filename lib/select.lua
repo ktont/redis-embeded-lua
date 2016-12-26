@@ -1,10 +1,8 @@
 local selected_db = 0
-local TRUE = 1
-local FALSE = nil
 local call  = redis.call
 local pcall = redis.pcall
 local select = function(n)
-    if type(n) == 'string' then
+    if type(n) == 'string' and redis._DBMAP then
         n = redis._DBMAP[n]
     end
     local r = redis.pcall('select', n)
@@ -13,7 +11,7 @@ local select = function(n)
     end
     return r.err
 end
-local exists = function(db, key)
+local exists = function(db, ey)
     if not db then
         return false
     elseif not key then

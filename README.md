@@ -1,62 +1,59 @@
 node-redis-embeded-lua
 ==================
 
-## Hello world
-node ./this.js
-~~~js
-    var redis = require("redis"),
-        redisClient = redis.createClient();
-    var redisEmbededLua = require('redis-embeded-lua');
+~~~lua
+    vi ./demo/arithmetic.lua
+exports.PI = 3.14;
 
-    redisEmbededLua.inject(redisClient);
+exports.add = function(a,b)
+    return a+b
+end
 
-    var pack = redisClient.sha1pack(`
-        //call is the shorthand for redis.call
-        local r = call('keys', '*')
-        local arithmetic = require('./demo/arithmetic.lua')
-        local count = 0
-        for k,v in ipairs(r) do
-            /*
-             * k: index of Array
-             * v: the redis key
-             */
-            if exists(v) then
-                count = arithmetic.add(count, 1)
-            end
-        end
-        return 'the dbsize: '..count
-    `);
+exports.sub = function(a,b)
+    return a-b;
+end
 
-    redisClient.evalScript(pack)
-    .then(function(ret) {
-        console.log(ret);
-        redisClient.unref();
-    })
-    .catch(function(e) {
-        console.error(e.toString());
-        process.exit(1);
-    });
+exports.mul = function(a,b)
+    return a*b;
+end
+
+exports.div = function(a,b)
+    return a/b;
+end
 ~~~
 
-vi ./demo/arithmetic.lua
-~~~lua
-    exports.PI = 3.14;
+~~~js
+    node ./this.js
+var redis = require("redis"),
+    redisClient = redis.createClient();
+var redisEmbededLua = require('redis-embeded-lua');
 
-    exports.add = function(a,b)
-        return a+b
-    end
+redisEmbededLua.inject(redisClient);
 
-    exports.sub = function(a,b)
-        return a-b;
+var pack = redisClient.sha1pack(`
+    local arithmetic = require('./demo/arithmetic.lua')
+    //the shorthand for redis.call.
+    local r = call('keys', '*')
+    local count = 0
+    for k,v in ipairs(r) do
+        /*
+         * k: index of Array
+         * v: the redis key
+         */
+        count = arithmetic.add(count, 1)
     end
+    return count
+`);
 
-    exports.mul = function(a,b)
-        return a*b;
-    end
-
-    exports.div = function(a,b)
-        return a/b;
-    end
+redisClient.evalScript(pack)
+.then(function(ret) {
+    console.log('the dbsize:', ret);
+    redisClient.unref();
+})
+.catch(function(e) {
+    console.error(e.toString());
+    process.exit(1);
+});
 ~~~
 
 ## Installation
@@ -64,45 +61,45 @@ vi ./demo/arithmetic.lua
 
 ## Usage
 ~~~js
-    class YourBussiness() {
-        constructor(redisClient) {
-            this.client = redisClient;
-            redisEmbededLua.inject(this.client);
-            this.client.configDBName({
-                0:  'default',
-                1:  'userinfo',
-                2:  'session',
-                4:  'order',
-                11: 'statics',
-                15: 'test'
-            });
-        }
+class YourBussiness() {
+    constructor(redisClient) {
+        this.client = redisClient;
+        redisEmbededLua.inject(this.client);
+        this.client.configDBName({
+            0:  'default',
+            1:  'userinfo',
+            2:  'session',
+            4:  'order',
+            11: 'statics',
+            15: 'test'
+        });
     }
-    YourBussiness.prototype.set = (function() {
-        var script = redisClient.sha1pack(`
-            select('statics')
-            call('incr', 'set'..KEYS[1]);
-            select('userinfo')
-            call('set', KEYS[1], ARGS[1]);
-        `);
-        return function(key, val) {
-            return this.client.evalScript(script, 1, key, val);
-        };
-    })();
+}
+YourBussiness.prototype.set = (function() {
+    var script = redisClient.sha1pack(`
+        select('statics')
+        call('incr', 'set'..KEYS[1]);
+        select('userinfo')
+        call('set', KEYS[1], ARGS[1]);
+    `);
+    return function(key, val) {
+        return this.client.evalScript(script, 1, key, val);
+    };
+})();
 
-    YourBussiness.prototype.get = (function() {
-        var script = redisClient.sha1pack(`
-            select('statics')
-            call('incr', 'get'..KEYS[1]);
-            select('userinfo')
-            return call('get', KEYS[1])
-        `);
-        return function(key) {
-            return this.client.evalScript(script, 1, key);
-        };
-    })();
+YourBussiness.prototype.get = (function() {
+    var script = redisClient.sha1pack(`
+        select('statics')
+        call('incr', 'get'..KEYS[1]);
+        select('userinfo')
+        return call('get', KEYS[1])
+    `);
+    return function(key) {
+        return this.client.evalScript(script, 1, key);
+    };
+})();
 
-    var yb = new YourBussiness();
+var yb = new YourBussiness();
 ~~~
 ---
 ## LUA API
@@ -153,10 +150,6 @@ for examples:
 
 return true or false
 
-### selected_db
-
-number, the current selected database number
-
 ---
 ## JavaScirpt API
 
@@ -176,7 +169,7 @@ return Promise
 return object, lua script pack
 ```
 {
-    text:'lua stuff',
+    text:'lua text',
     sha1:'sha1num'
 }
 ```
@@ -193,83 +186,3 @@ return object, lua script pack
 ```
 __Note__: If you use configDBName, you must use `select(db)` instead of `redis.select(n)`
 
-## examples
-
-* audit key's type in all DB
-
-node examples/auditDB.js
-
-~~~js
-    var redis = require("redis"),
-        redisClient = redis.createClient();
-    var redisEmbededLua = require('redis-embeded-lua');
-
-    redisEmbededLua.inject(redisClient);
-
-    var maxDBConf = 16;
-    var yourBussinessDBAudit = (function() {
-        var script = redisClient.sha1pack(`
-            local result = {}
-            for i = 0, ${maxDBConf} do
-                local err = select(i)
-                if err then
-                    return result
-                end
-                local r = call('keys', '*')
-                local tmp = {}
-                for k,v in ipairs(r) do
-                    local ty = call('type', v)['ok']
-                    if not tmp[ty] then tmp[ty] = 0; end
-                    tmp[ty] = tmp[ty] + 1
-                end
-                local lst = {}
-                for k,v in pairs(tmp) do
-                    table.insert(lst, k)
-                    table.insert(lst, v)
-                end
-                table.insert(result, lst)
-            end
-            return result
-        `);
-        return function () {
-            return redisClient.evalScript(script);
-        };
-    })();
-
-    return yourBussinessDBAudit()
-    .then(function(ret) {
-        console.log(ret);
-        redisClient.unref();
-    })
-    .catch(function(err) {
-        console.error(err);
-        redisClient.unref();
-    });
-~~~
-
-## I want
-
-1) Embeded Lua Script In NodeJS
-> * I want to write Lua Script in my code directly,
-> * rather than another lua file.
-> * Just like embeded SQL in C language.
-
-2) Upgrade Lua
-> * module machinanism
-> * e.g. `exists(key)`
-> * e.g. `select('dbname')`
-
-## Killing Feathers
-
-* require in lua
-* config redis db name
-
-## issues
-
-processing:
-
-* support JSON storage?
-
-resolved:
-* is there any command return the currently selected db?
-* Unfortunately, Redis does not provide a way to associate names with the different databases, so you will have to keep track of what data goes where yourself.
