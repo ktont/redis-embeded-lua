@@ -1,29 +1,13 @@
 node-redis-embeded-lua
 ==================
-
 ~~~lua
-    vi ./demo/arithmetic.lua
 exports.PI = 3.14;
 
 exports.add = function(a,b)
     return a+b
 end
-
-exports.sub = function(a,b)
-    return a-b;
-end
-
-exports.mul = function(a,b)
-    return a*b;
-end
-
-exports.div = function(a,b)
-    return a/b;
-end
 ~~~
-
 ~~~js
-    node ./this.js
 var redis = require("redis"),
     redisClient = redis.createClient();
 var redisEmbededLua = require('redis-embeded-lua');
@@ -31,16 +15,15 @@ var redisEmbededLua = require('redis-embeded-lua');
 redisEmbededLua.inject(redisClient);
 
 var pack = redisClient.sha1pack(`
-    local arithmetic = require('./demo/arithmetic.lua')
-    //the shorthand for redis.call.
-    local r = call('keys', '*')
-    local count = 0
+    local mathDemo = require('./mathDemo.lua')
+    local r = redis.call('keys', '*')
+    local count = 0;
+    /*
+     * k: index of Array
+     * v: the redis key
+     */
     for k,v in ipairs(r) do
-        /*
-         * k: index of Array
-         * v: the redis key
-         */
-        count = arithmetic.add(count, 1)
+        count = mathDemo.add(count, 1)
     end
     return count
 `);
@@ -54,6 +37,13 @@ redisClient.evalScript(pack)
     console.error(e.toString());
     process.exit(1);
 });
+~~~
+~~~bash
+$ npm install redis-embeded-lua
+$ vi mathDemo.lua
+$ vi test.js
+$ node ./test.js
+the dbsize: 5
 ~~~
 
 ## Installation
@@ -69,9 +59,7 @@ class YourBussiness() {
             0:  'default',
             1:  'userinfo',
             2:  'session',
-            4:  'order',
-            11: 'statics',
-            15: 'test'
+            11: 'statics'
         });
     }
 }
@@ -108,14 +96,6 @@ var yb = new YourBussiness();
 
 require like nodejs. Only support one level(and in embeded lua).
 
-### call(ops, key, arg, ...)
-
-alias for redis.call()
-
-### pcall(ops, key, arg, ...)
-
-alias for redis.pcall
-
 ### select(db)
 
 * select index
@@ -134,18 +114,11 @@ return value
 * success: nil
 * fail:    message
 
-__Note__: use `select(n)` instead of `redis.call('select', n)`
-
-### exists([db,] key)
-
-* db is option. number(db index) or string(db config name).
+### exists(key)
 
 for examples:
-
 ~~~
     exists('foo')
-    exists(1, 'foo')
-    exists('userinfo', 'foo')
 ~~~
 
 return true or false
