@@ -5,20 +5,20 @@
     redisEmbededLua.inject(redisClient);
 
     var yourBussinessInsertData = (function () {
-        var script = redisClient.sha1pack(`
-            local userinfo = cjson.decode(ARGV[1])
-            local keyExistsFlag = exists(KEYS[1])
+        var pack = redisClient.sha1pack(`
+            local keyExistsFlag = exists(ARGV[1])
+            local userinfo = cjson.decode(ARGV[2])
             for k,v in pairs(userinfo) do
-                call('hset', KEYS[1], k, v)
+                call('hset %s %s %s', ARGV[1], k, v)
             end
-            call('hset', KEYS[1], 'updateTime', ARGV[2])
+            call('hset %s updateTime %s', ARGV[1], ARGV[3])
             if not keyExistsFlag then
-                call('hset', KEYS[1], 'createTime', ARGV[2])
+                call('hset %s createTime %s', ARGV[1], ARGV[3])
             end
-            return {'ok', keyExistsFlag and 'update '..KEYS[1] or 'insert '..KEYS[1]}
+            return {'ok', keyExistsFlag and 'update '..ARGV[1] or 'insert '..ARGV[1]}
         `);
         return function(key, json) {
-            return redisClient.evalScript(script, 1, 
+            return redisClient.evalScript(pack, 
                 key, JSON.stringify(json), new Date().toString());
         }
     })();

@@ -13,10 +13,10 @@ var yourBussinessDBAudit = (function() {
             if err then
                 return result
             end
-            local r = call('keys', '*')
+            local r = call('keys *')
             local tmp = {}
             for k,v in ipairs(r) do
-                local ty = call('type', v)['ok']
+                local ty = redis.call('type', v)['ok']
                 if not tmp[ty] then tmp[ty] = 0; end
                 tmp[ty] = tmp[ty] + 1
             end
