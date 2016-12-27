@@ -147,22 +147,24 @@ yourBussinessDBCount()
 ~~~bash
 $ vi test.js
 $ node ./test.js
-the dbsize: 9
+the dbsize: 9         # maybe different from your system.
 ~~~
-maybe different from your system.
 
 ### 6: promotion
 __TIP__: If you use only one db in redis, ignore this section.
+
+Although I don't like the multi-db design of redis,
+provide two method using reids-multi-dbs flexible.
+
+If I were you, I would use only #0 db.
+
+method 1:
 ~~~js
-/*
- * I don't like the multi-db design of redis.
- * so, recommend you use only one db.
- */
 redisClient.configDBName({
-    0:  'DEFAULT',
-    1:  'USERINFO',
-    11: 'STATICS',
-    15: 'TEST'
+    DEFAULT : 0,
+    USERINFO: 1,
+    STATICS : 11,
+    TEST    : 15
 });
 var pack = redisClient.sha1pack(`
     local t = {}
@@ -173,15 +175,43 @@ var pack = redisClient.sha1pack(`
     //certainly, you can use db number directly
     select(1)
     table.insert(t, call('dbsize'))
-    return 'ok'
+    return t
 `);
 ~~~
 ~~~bash
 $ vi test.js
 $ node test.js
-[ 1, 1, 3 ]
+[ 1, 1, 3 ]      # maybe different from your system.
 ~~~
-maybe different from your system.
+
+method 2:
+~~~lua
+exports = {
+    DEFAULT = 0,
+    USERINFO = 1,
+    STATICS = 11,
+    TEST = 15
+}
+~~~
+~~~js
+var pack = redisClient.sha1pack(`
+    local db = require('./conf.lua')
+    local t = {}
+    select(db.TEST)
+    table.insert(t, call('dbsize'))
+    select(db.STATICS)
+    table.insert(t, call('dbsize'))
+    select(1)
+    table.insert(t, call('dbsize'))
+    return t
+`);
+~~~
+~~~bash
+$ vi conf.lua
+$ vi test.js
+$ node test.js
+[ 1, 1, 3 ]          # maybe different from your system.
+~~~
 
 ## Installation
 `npm install redis-embeded-lua`
@@ -291,7 +321,7 @@ return object
 * conf object
 ```JSON
 {
-    0: 'DEFAULT',
-    1: 'USERINFO'
+    'DEFAULT': 0,
+    'USERINFO': 1
 }
 ```

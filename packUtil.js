@@ -33,7 +33,7 @@ function sha1pack(text) {
 function configDBName(conf) {
     var arr = [];
     for(var k in conf) {
-        arr.push(`["${conf[k]}"] = ${k}`);
+        arr.push(`["${k}"] = ${conf[k]}`);
     }
 
     dbMap = 'redis._DBMAP = {' + arr.join(',') + '}';
