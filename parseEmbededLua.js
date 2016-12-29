@@ -1,25 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 
-var script = `
-    local a = requirebbd('');
-    local b = require('./examples/print.lua');
-    local b = require('./examples/print.lua');
-    local r = redis.call('keys', '*', '\\n')
-    local s = ''
-     local count = 0
-     for k,v in ipairs(r) do
-         //this lua function added by me. It's new.
-         if redis.exists(k) then
-             count = count + 1
-         end
-     end
-    /**/
-     return count
- `;
-//console.log(script);
-//var script = '--[[//x/*iix*/lsfjkl;fa]]--';
-
 function startsWith(base, off, sub) {
     for(var i=0; i<sub.length; i++)
         if(base[off+i] !== sub[i])
@@ -210,16 +191,4 @@ function expect_require(base, off) {
     }
 }
 
-/*
-var ret = replaceComment(script);
-console.log(ret.script);
-console.log("========================");
-if(ret.modules) {
-    ret.modules.forEach(function(i){
-        console.log(i.length);
-        console.log(i.file);
-        console.log('-----------------');
-    });
-}
-*/
 module.exports = replaceComment;
