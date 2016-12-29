@@ -159,8 +159,12 @@ function getCallerFile() {
 }
 
 function handle_require(file) {
-    var callerFile = getCallerFile();
-    var absolute = path.join(path.dirname(callerFile), file)
+    if(file[0] == '/') {
+        var absolute = path.join(file);
+    } else {
+        var callerFile = getCallerFile();
+        var absolute = path.join(path.dirname(callerFile), file)
+    }
     if(!fs.existsSync(absolute)) {
         throw new Error('file not found ' + absolute);
     }
@@ -195,7 +199,7 @@ function expect_require(base, off) {
             while(/[ \t]/.test(base[i])) i++;
             if(base[i++] != ')')
                 throw new SyntaxError('require syntax');
-            var absoluteName = handle_require(file);
+            var absoluteName = handle_require(file.trim());
             return {
                 length: i-off,
                 file: absoluteName

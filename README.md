@@ -1,48 +1,43 @@
 node-redis-embeded-lua
 ==================
-### 0:
 ~~~js
 var redis = require("redis"),
     redisClient = redis.createClient();
 var redisEmbededLua = require('redis-embeded-lua');
-
+ 
 redisEmbededLua.inject(redisClient);
-
+ 
 var pack = redisClient.sha1pack(`
-    redis.call('set', 'foo', 'bar')
-    return 'ok'
+    local r = redis.call('keys', '*')
+    local count = 0
+    for k,v in ipairs(r) do
+        /*
+         * k: index of Array
+         * v: the redis key
+         */
+        count = count + 1
+    end
+    return 'the dbsize: '..count
 `);
-
 redisClient.evalScript(pack)
 .then(function(ret) {
-    console.log('the result:', ret);
+    console.log(ret);
     redisClient.unref();
 })
 .catch(function(e) {
     console.error(e.toString());
     process.exit(1);
 });
-
 ~~~
 ~~~bash
 $ npm install redis-embeded-lua
 $ vi test.js
 $ node ./test.js
-the result: ok
+the dbsize: 9        # maybe different from your system.
 ~~~
 
+## Usage
 ### 1: promotion
-~~~js
-var pack = redisClient.sha1pack(`
-    /*
-     * Yes! Comment here like JS
-     */
-    redis.call('set', 'foo', 'bar')
-    return 'ok'
-`);
-~~~
-
-### 2: promotion
 ~~~js
 var pack = redisClient.sha1pack(`
     /*
@@ -64,7 +59,7 @@ redisClient.evalScript(pack, 'foo', 'bar')
 });
 ~~~
 
-### 3: promotion
+### 2: promotion
 ~~~js
 var pack = redisClient.sha1pack(`
     /*
@@ -84,7 +79,7 @@ $ node ./test.js
 the result: bar_hello world
 ~~~
 
-### 4: promotion
+### 3: promotion
 ~~~lua
 exports.PI = 3.14
 exports.mul = function(a,b)
@@ -107,7 +102,7 @@ $ node ./test.js
 the result: 254
 ~~~
 
-### 5: promotion
+### 4: promotion
 ~~~js
 var redis = require("redis"),
     redisClient = redis.createClient();
@@ -116,8 +111,8 @@ var redisEmbededLua = require('redis-embeded-lua');
 redisEmbededLua.inject(redisClient);
 
 /*
- * Actually, ``evalScript'' must be called in a closure;
- * because, performance of ``sha1pack'' is expensive
+ * Actually, `evalScript' must be called in a closure;
+ * because, performance of `sha1pack' is expensive.
  * Yes, `run bussiness in closure' is the `original intention'.
  */
 var yourBussinessDBCount = (function() {
@@ -147,10 +142,39 @@ yourBussinessDBCount()
 ~~~bash
 $ vi test.js
 $ node ./test.js
-the dbsize: 9         # maybe different from your system.
+the dbsize: 9         
 ~~~
 
-### 6: promotion
+or define `class':
+
+~~~js
+class YourBussiness() {
+    constructor(redisClient) {
+        this.client = redisClient;
+        redisEmbededLua.inject(this.client);
+    }
+}
+YourBussiness.prototype.set = (function() {
+    var script = redisClient.sha1pack(`
+        call("set %s %s", ARGS[1], ARGS[2])
+        return
+    `);
+    return function(key, val) {
+        return this.client.evalScript(script, key, val);
+    };
+})();
+
+YourBussiness.prototype.get = (function() {
+    var script = redisClient.sha1pack(`
+        return call('get %s', ARGS[1])
+    `);
+    return function(key) {
+        return this.client.evalScript(script, key);
+    };
+})();
+~~~
+
+### 5: promotion
 __TIP__: If you use only one db in redis, ignore this section.
 
 Although I don't like the multi-db design of redis,
@@ -168,11 +192,13 @@ redisClient.configDBName({
 });
 var pack = redisClient.sha1pack(`
     local t = {}
+    //Luckly, the initial db is always #0
+    table.insert(t, call('dbsize'))
     select('TEST')
     table.insert(t, call('dbsize'))
     select('STATICS')
     table.insert(t, call('dbsize'))
-    //certainly, you can use db number directly
+    //Certainly, you can use db number directly
     select(1)
     table.insert(t, call('dbsize'))
     return t
@@ -181,7 +207,7 @@ var pack = redisClient.sha1pack(`
 ~~~bash
 $ vi test.js
 $ node test.js
-[ 1, 1, 3 ]      # maybe different from your system.
+[ 6, 1, 1, 3 ]
 ~~~
 
 method 2:
@@ -210,39 +236,12 @@ var pack = redisClient.sha1pack(`
 $ vi conf.lua
 $ vi test.js
 $ node test.js
-[ 1, 1, 3 ]          # maybe different from your system.
+[ 1, 1, 3 ]
 ~~~
 
 ## Installation
 `npm install redis-embeded-lua`
 
-## Usage
-~~~js
-class YourBussiness() {
-    constructor(redisClient) {
-        this.client = redisClient;
-        redisEmbededLua.inject(this.client);
-    }
-}
-YourBussiness.prototype.set = (function() {
-    var script = redisClient.sha1pack(`
-        call("set %s %s", ARGS[1], ARGS[2])
-        return
-    `);
-    return function(key, val) {
-        return this.client.evalScript(script, key, val);
-    };
-})();
-
-YourBussiness.prototype.get = (function() {
-    var script = redisClient.sha1pack(`
-        return call('get %s', ARGS[1])
-    `);
-    return function(key) {
-        return this.client.evalScript(script, key);
-    };
-})();
-~~~
 ---
 ## LUA API
 
@@ -285,7 +284,7 @@ for examples:
 
 return true or false
 
-rahter than the following
+Instead of  the following
 ~~~lua
 if redis.call('exists', 'foo') == 1 then
     return true
@@ -311,7 +310,7 @@ return Promise
 return object
 ```JSON
 {
-    text:'lua text',
+    text:'lua script...',
     sha1:'sha1num'
 }
 ```
@@ -321,7 +320,7 @@ return object
 * conf object
 ```JSON
 {
-    'DEFAULT': 0,
-    'USERINFO': 1
+    DEFAULT: 0,
+    USERINFO: 1
 }
 ```

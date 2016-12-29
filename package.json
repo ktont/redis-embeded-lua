@@ -1,6 +1,6 @@
 {
   "name": "redis-embeded-lua",
-  "version": "0.5.9",
+  "version": "0.5.11",
   "description": "Redis Lua Script Embeded In NodeJS",
   "main": "index.js",
   "scripts": {

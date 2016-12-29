@@ -128,7 +128,6 @@ function load(modules) {
 function reload() {
     for(var k in moduleMap) {
         var x = moduleMap[k];
-        //console.log('0000000', x);
         x.status = 'pending';
         redisClient.evalScript(x.content)
         .then(function() {
