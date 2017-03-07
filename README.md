@@ -5,7 +5,7 @@ var redis = require("redis"),
     redisClient = redis.createClient();
 var redisEmbededLua = require('redis-embeded-lua');
  
-redisEmbededLua.inject(redisClient);
+redisEmbededLua.attach(redisClient);
  
 var pack = redisClient.sha1pack(`
     local r = redis.call('keys', '*')
@@ -108,7 +108,7 @@ var redis = require("redis"),
     redisClient = redis.createClient();
 var redisEmbededLua = require('redis-embeded-lua');
 
-redisEmbededLua.inject(redisClient);
+redisEmbededLua.attach(redisClient);
 
 /*
  * Actually, `evalScript' must be called in a closure;
@@ -151,7 +151,7 @@ or define `class':
 class YourBussiness() {
     constructor(redisClient) {
         this.client = redisClient;
-        redisEmbededLua.inject(this.client);
+        redisEmbededLua.attach(this.client);
     }
 }
 YourBussiness.prototype.set = (function() {

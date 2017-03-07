@@ -5,7 +5,7 @@ var execUtil = require('./execUtil.js');
 
 var globalPack = fs.readFileSync(__dirname+'/lib/global.lua', 'utf8');
 
-function injectFunction(redisClient) {
+function attach(redisClient) {
     redisClient.evalScript = execUtil.evalScript.bind(redisClient);
     redisClient.sha1pack = packUtil.sha1pack;
     redisClient.configDBName = packUtil.configDBName;
@@ -21,4 +21,6 @@ function injectFunction(redisClient) {
     return redisClient.evalScript(globalPack);
 }
 
-exports.inject = injectFunction;
+// 不能删，向后兼容
+exports.inject = attach;
+exports.attach = attach;
