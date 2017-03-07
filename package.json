@@ -1,6 +1,6 @@
 {
   "name": "redis-embeded-lua",
-  "version": "0.5.12",
+  "version": "0.5.13",
   "description": "Redis Lua Script Embeded In NodeJS",
   "main": "index.js",
   "scripts": {
@@ -27,5 +27,8 @@
   "bugs": {
     "url": "https://github.com/ktont/redis-embeded-lua/issues"
   },
-  "homepage": "https://github.com/ktont/redis-embeded-lua#readme"
+  "homepage": "https://github.com/ktont/redis-embeded-lua#readme",
+  "directories": {
+    "example": "examples"
+  }
 }

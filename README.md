@@ -310,8 +310,8 @@ return Promise
 return object
 ```JSON
 {
-    text:'lua script...',
-    sha1:'sha1num'
+    text:"lua script...",
+    sha1:"sha1num"
 }
 ```
 
