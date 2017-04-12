@@ -59,6 +59,10 @@ function evalScript() {
         var pack = args[0];
         script = pack.text;
         args[0] = 0;
+        args.forEach(function(item,idx,arr) {
+          if(idx > 0 && typeof item == 'object')
+            arr[idx] = JSON.stringify(item);
+        });
         args.unshift(pack.sha1);
         if(pack._modules_) {
             return luaModule.waitAllPending(pack._modules_)
